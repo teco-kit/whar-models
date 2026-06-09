@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import torch
+from torch import nn
 from sklearn import __version__ as sklearn_version
 from sklearn.base import ClassifierMixin
 from sklearn.metrics import accuracy_score
@@ -29,7 +30,7 @@ class FeatureSpec:
     description: str
 
 
-class ClassicalHARModel(ABC):
+class ClassicalHARModel(nn.Module, ABC):
     NAME: str | None = None
     display_name: str | None = None
     color: str | None = None
@@ -54,6 +55,7 @@ class ClassicalHARModel(ABC):
         disable_progressbar: bool = True,
         **estimator_kwargs: Any,
     ) -> None:
+        super().__init__()
         self.input_channels = input_channels
         self.window_length = window_length
         self.num_classes = num_classes
@@ -64,6 +66,7 @@ class ClassicalHARModel(ABC):
         self.estimator = self._build_estimator(**estimator_kwargs)
         self.feature_columns_: list[str] | None = None
         self.architecture = self.get_architecture_components()
+        self.register_buffer("_device_ref", torch.empty(0), persistent=False)
 
     @abstractmethod
     def _build_estimator(self, **estimator_kwargs: Any) -> ClassifierMixin:
@@ -197,18 +200,74 @@ class ClassicalHARModel(ABC):
         logger.info(f"[{self.get_name()}] Training took {time.perf_counter() - t0:.2f}s")
         return self
 
+    def forward(self, x: ArrayLike) -> torch.Tensor:
+        output_device = x.device if isinstance(x, torch.Tensor) else self._device_ref.device
+        scores = self.decision_scores(x)
+        return torch.as_tensor(scores, dtype=torch.float32, device=output_device)
+
     def predict(self, x: ArrayLike) -> np.ndarray:
         features = self._align_features(self._extract_feature_frame(x), fit=False)
         return np.asarray(self.estimator.predict(features))
 
     def predict_proba(self, x: ArrayLike) -> np.ndarray:
-        if not hasattr(self.estimator, "predict_proba"):
-            raise AttributeError(f"{self.get_name()} does not expose predict_proba().")
+        self._ensure_fitted()
         features = self._align_features(self._extract_feature_frame(x), fit=False)
         predict_proba = getattr(self.estimator, "predict_proba")
-        return np.asarray(predict_proba(features))
+        return self._align_estimator_columns(
+            np.asarray(predict_proba(features), dtype=np.float64),
+            fill_value=0.0,
+        )
+
+    def decision_scores(self, x: ArrayLike) -> np.ndarray:
+        self._ensure_fitted()
+        features = self._align_features(self._extract_feature_frame(x), fit=False)
+
+        predict_proba = getattr(self.estimator, "predict_proba", None)
+        if predict_proba is not None:
+            try:
+                probabilities = np.asarray(predict_proba(features), dtype=np.float64)
+            except AttributeError:
+                probabilities = None
+            if probabilities is not None:
+                return self._align_estimator_columns(
+                    np.log(np.clip(probabilities, 1e-12, 1.0)),
+                    fill_value=-1e9,
+                )
+
+        decision_function = getattr(self.estimator, "decision_function", None)
+        if decision_function is not None:
+            scores = np.asarray(decision_function(features), dtype=np.float64)
+            if scores.ndim == 1:
+                scores = np.column_stack([-scores, scores])
+            if scores.ndim == 2 and scores.shape[1] == len(self._estimator_classes()):
+                return self._align_estimator_columns(scores, fill_value=-1e9)
+
+        predictions = np.asarray(self.estimator.predict(features), dtype=int)
+        scores = np.full((predictions.shape[0], self.num_classes), -1e9, dtype=np.float64)
+        valid = (predictions >= 0) & (predictions < self.num_classes)
+        scores[np.arange(predictions.shape[0])[valid], predictions[valid]] = 0.0
+        return scores
 
     def score(self, x: ArrayLike, y: ArrayLike) -> float:
         predictions = self.predict(x)
         labels = self._normalize_labels(y)
         return float(accuracy_score(labels, predictions))
+
+    def _ensure_fitted(self) -> None:
+        if not hasattr(self.estimator, "classes_"):
+            raise RuntimeError(f"{self.get_name()} must be fit before inference.")
+
+    def _estimator_classes(self) -> np.ndarray:
+        self._ensure_fitted()
+        return np.asarray(getattr(self.estimator, "classes_"), dtype=int)
+
+    def _align_estimator_columns(self, values: np.ndarray, *, fill_value: float) -> np.ndarray:
+        classes = self._estimator_classes()
+        values = np.asarray(values, dtype=np.float64)
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+        aligned = np.full((values.shape[0], self.num_classes), fill_value, dtype=np.float64)
+        for source_index, class_id in enumerate(classes):
+            if 0 <= class_id < self.num_classes and source_index < values.shape[1]:
+                aligned[:, class_id] = values[:, source_index]
+        return aligned
