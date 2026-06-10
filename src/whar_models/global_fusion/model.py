@@ -13,7 +13,7 @@ def extract_blocks_with_overlap_torch(input_segs, T_size: int):
     step = T_size
     num_blocks = int(T / step)
 
-    blocks = torch.zeros(B, F, T_size, int(C * num_blocks))
+    blocks = input_segs.new_zeros((B, F, T_size, int(C * num_blocks)))
 
     for b in range(B):
         for c in range(C):
@@ -46,10 +46,8 @@ class GlobalFusion(nn.Module):
         self.input_shape = input_shape
         self.S_number_sensors_type = S_number_sensors_type
         self.L_sensor_locations = L_sensor_locations
-        self.fft_segments_length = nn.parameter.Parameter(
-            torch.tensor(fft_segments_length), requires_grad=False
-        )
-        self.nr_segment = int(input_shape[2] / fft_segments_length)
+        self.fft_segments_length = int(fft_segments_length)
+        self.nr_segment = int(input_shape[2] / self.fft_segments_length)
         self.nb_classes = nb_classes
         self.d_sensor_channel = d_sensor_channel
         self.kernel_size_1 = kernel_size_1
@@ -165,12 +163,12 @@ class GlobalFusion(nn.Module):
         feature_dim_list_3 = [filter_nr]
         kernel_size_list_3 = [S_number_sensors_type]
         stride_list_3 = [1]
-        for i in torch.arange(layer_nr_3):
+        for i in range(layer_nr_3):
             feature_dim_list_3.append(filter_nr)
             kernel_size_list_3.append(1)
             stride_list_3.append(1)
         layers_conv_3 = []
-        for i in torch.arange(layer_nr_3):
+        for i in range(layer_nr_3):
             layers_conv_3.append(
                 nn.Sequential(
                     nn.Conv2d(
@@ -232,15 +230,15 @@ class GlobalFusion(nn.Module):
 
         window_length = x.shape[2]
         batch_size = x.shape[0]
-        temp_list = [torch.tensor(0)] * window_length
-        for i in torch.arange(window_length):
+        temp_list = []
+        for i in range(window_length):
             x_sl = x[:, :, i : i + 1, :].permute(0, 2, 1, 3)
 
             for l_c_1 in self.layers_conv_1:
                 x_sl = l_c_1(x_sl)
 
-            x_s_list = [torch.tensor(0)] * self.S_number_sensors_type
-            for j in torch.arange(self.S_number_sensors_type):
+            x_s_list = []
+            for j in range(self.S_number_sensors_type):
                 x_s = x_sl[
                     :,
                     :,
@@ -271,7 +269,7 @@ class GlobalFusion(nn.Module):
 
                 x_s = x_s_q + weighted_x_s_v
 
-                x_s_list[j] = x_s
+                x_s_list.append(x_s)
             x_merge = torch.cat(x_s_list, dim=-1)
 
             assert x_merge.shape[-1] == self.S_number_sensors_type
@@ -298,7 +296,7 @@ class GlobalFusion(nn.Module):
 
             x_final = x_q + weighted_x_v
 
-            temp_list[i] = x_final
+            temp_list.append(x_final)
         x = torch.cat(temp_list, dim=-1)
 
         x = x.permute(0, 3, 2, 1).reshape(batch_size, window_length, -1)
