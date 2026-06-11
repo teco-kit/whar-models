@@ -15,7 +15,7 @@ The library currently includes out-of-the-box support for 22 models. Model-speci
 ### Installation
 
 ```
-pip install "git+https://github.com/<owner>/whar-models.git"
+pip install "git+https://github.com/teco-kit//whar-models.git"
 ```
 
 ### List Models
