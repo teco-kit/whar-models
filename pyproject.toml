@@ -9,7 +9,7 @@ dependencies = [
     "numpy>=2.2.0",
     "pandas>=2.3.0",
     "scikit-learn==1.8.0",
-    "torch>=2.7.1",
+    "torch>=2.13.0",
     "tsfresh>=0.21.1",
 ]
 
