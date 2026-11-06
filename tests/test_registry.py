@@ -53,6 +53,8 @@ def test_neural_models_build_and_run() -> None:
         "dynamic_whar",
         "global_fusion",
         "if_conv_transformer",
+        "liteway",
+        "liteway_light",
         "lstms_ensemble",
         "mlp_har",
         "mlp_mixer",

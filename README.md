@@ -8,7 +8,7 @@ This library offers reusable model implementations for WHAR (Wearable Human Acti
 - consistent model folders under `src/whar_models/<model_id>/`
 - a shared input convention for WHAR windows shaped as `(batch, channels, timesteps)`
 
-The library currently includes out-of-the-box support for 22 models. Model-specific defaults are defined in each model package, and overrides can be passed through `build_model`.
+The library currently includes out-of-the-box support for 24 models. Model-specific defaults are defined in each model package, and overrides can be passed through `build_model`.
 
 # How to Use
 
@@ -110,6 +110,8 @@ loop and does not support gradient-based training.
 | ✅ | `DYNAMIC_WHAR` | DynamicWHAR | [*Towards a Dynamic Inter-Sensor Correlations Learning Framework for Multi-Sensor-Based Wearable Human Activity Recognition*](https://dl.acm.org/doi/pdf/10.1145/3550331) | PyTorch |
 | ✅ | `GLOBAL_FUSION` | GlobalFusion | [*GlobalFusion: A Global Attentional Deep Learning Framework for Multisensor Information Fusion*](https://dl.acm.org/doi/pdf/10.1145/3380999) | PyTorch |
 | ✅ | `IF_CONV_TRANSFORMER` | IF-ConvTransformer | [*IF-ConvTransformer: A Framework for Human Activity Recognition Using IMU Fusion and ConvTransformer*](https://dl.acm.org/doi/pdf/10.1145/3534584) | PyTorch |
+| ✅ | `LITEWAY` | LITEWAY | [*LITEWAY: An extra-lightweight, convolution-only network with a single linear layer for human activity recognition* (code)](https://github.com/dominique-nshimyimana/liteway) | PyTorch |
+| ✅ | `LITEWAY_LIGHT` | LITEWAY Light | [*LITEWAY: An extra-lightweight, convolution-only network with a single linear layer for human activity recognition* (code)](https://github.com/dominique-nshimyimana/liteway) | PyTorch |
 | ✅ | `LSTMS_ENSEMBLE` | Guan-LSTM | [*Ensembles of Deep LSTM Learners for Activity Recognition Using Wearables*](https://arxiv.org/pdf/1703.09370) | PyTorch |
 | ✅ | `MLP_HAR` | MLP-HAR | [*MLP-HAR: Boosting Performance and Efficiency of HAR Models on Edge Devices with Purely Fully Connected Layers*](https://dl.acm.org/doi/pdf/10.1145/3675095.3676624) | PyTorch |
 | ✅ | `MLP_MIXER` | MLP-Mixer | [*MLPs Are All You Need for Human Activity Recognition*](https://www.mdpi.com/2076-3417/13/20/11154/pdf) | PyTorch |

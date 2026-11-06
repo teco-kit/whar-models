@@ -21,6 +21,8 @@ class WHARModelID(Enum):
     GLOBAL_FUSION = "global_fusion"
     IF_CONV_TRANSFORMER = "if_conv_transformer"
     KNN = "knn"
+    LITEWAY = "liteway"
+    LITEWAY_LIGHT = "liteway_light"
     LSTMS_ENSEMBLE = "lstms_ensemble"
     MLP_HAR = "mlp_har"
     MLP_MIXER = "mlp_mixer"
@@ -159,6 +161,22 @@ _MODEL_SPECS: dict[WHARModelID, ModelSpec] = {
         framework="torch",
         paper="IF-ConvTransformer: A Framework for Human Activity Recognition Using IMU Fusion and ConvTransformer",
         builder=_packaged_builder("if_conv_transformer", "build_if_conv_transformer"),
+    ),
+    WHARModelID.LITEWAY: ModelSpec(
+        id="liteway",
+        name="LITEWAY",
+        family="compact_neural",
+        framework="torch",
+        paper="LITEWAY: An extra-lightweight, convolution-only network with a single linear layer for human activity recognition",
+        builder=_packaged_builder("liteway", "build_liteway"),
+    ),
+    WHARModelID.LITEWAY_LIGHT: ModelSpec(
+        id="liteway_light",
+        name="LITEWAY Light",
+        family="compact_neural",
+        framework="torch",
+        paper="LITEWAY: An extra-lightweight, convolution-only network with a single linear layer for human activity recognition",
+        builder=_packaged_builder("liteway_light", "build_liteway_light"),
     ),
     WHARModelID.LSTMS_ENSEMBLE: ModelSpec(
         id="lstms_ensemble",
